@@ -49,6 +49,4 @@ public class ByteBufferUtils {
         buffer.get(data);
         return new String(data, Charset.forName(charset));
     }
-
-
 }

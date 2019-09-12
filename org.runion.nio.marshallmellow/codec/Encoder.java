@@ -11,13 +11,14 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 public class Encoder {
-	private interface FieldOperation {
+	interface FieldOperation {
 		public Object operate(ByteBuffer b, Object src) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException;
 	}
 
@@ -46,8 +47,8 @@ public class Encoder {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static void decodeField(Object me, Field f, ByteBuffer buffer) throws IllegalAccessException, InvocationTargetException {
-		if(shouldProcessField(me, f) && processTransformationalAnnotations(me, f) && processParsingAnnotations(me, f, buffer)) {
-			processStringAnnotations(me, f, buffer);
+		if(shouldProcessField(me, f) && processArrayAnnotations(me, f, buffer) && processTransformationalAnnotations(me, f) && processParsingAnnotations(me, f, buffer)) {
+			 processStringAnnotations(me, f, buffer);
 		}
 	}
 
@@ -109,6 +110,35 @@ public class Encoder {
 				writeField(me, f, getString(buffer, asString.charSet()).replace("\0", ""));
 				return false;
 			}
+		}
+		return true;
+	}
+
+	private static boolean processArrayAnnotations(Object me, Field f, ByteBuffer buffer) throws IllegalAccessException, InvocationTargetException {
+		AsArray asArray = f.getAnnotation(AsArray.class);
+		if(asArray != null) {
+			Optional<FieldOperation> encoder = mappings.keySet().stream().filter(a -> f.getAnnotation(a) != null).map(mappings::get).findFirst();
+
+			Object target = readField(me, f);
+
+			int length = asArray.fixedLength();
+			if (length == -1 && !asArray.lengthProvider().isEmpty()) {
+				length = ((Number) callGettorOrReadField(me, asArray.lengthProvider())).intValue();
+			} else if (length == -1 && asArray.lengthProvider().isEmpty()) {
+				length = Array.getLength(target);
+			}
+
+			//target = Array.newInstance(target.getClass().getComponentType(), length);
+			for(int x = 0; x < length; x++) {
+				Array.set(target, x, encoder.get().operate(buffer, Array.get(target, x)));
+			}
+
+			Class<?> arrayType = target.getClass().getComponentType();
+			Object copy = Array.newInstance(arrayType, length);
+			System.arraycopy(target, 0, copy, 0, length);
+			writeField(me, f, copy);
+
+			return false;
 		}
 		return true;
 	}

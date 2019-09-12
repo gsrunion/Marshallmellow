@@ -185,6 +185,52 @@ public class EncoderTest {
         assertEquals(1, struct.b.item);
     }
 
+    @Test
+    public void testArray() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        class Struct {
+            @AsByte
+            @AsArray(fixedLength = 3)
+            public byte[] fixedLength = new byte[100];
+
+            @AsByte public byte len;
+
+            @AsByte
+            @AsArray(lengthProvider = "len")
+            public byte[] fieldPredicated = new byte[100];
+
+            @AsByte
+            @AsArray(lengthProvider = "length")
+            public byte[] methodPredicated = new byte[100];
+
+            public int length() {
+                return len;
+            }
+        }
+
+        Struct struct = decode(new Struct(), 0, 1, 2, 2, 3, 4, 5, 6);
+        assertTrue(Arrays.equals(new byte[]{ 0, 1, 2}, struct.fixedLength));
+        assertEquals(2, struct.len);
+        assertTrue(Arrays.equals(new byte[]{ 3, 4}, struct.fieldPredicated));
+        assertTrue(Arrays.equals(new byte[]{ 5, 6}, struct.methodPredicated));
+    }
+
+    @Test
+    public void testArrayObject() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        class Inner {
+            @AsByte public byte item;
+        }
+
+        class Outer {
+            @AsObject
+            @AsArray(fixedLength = 2)
+            public Inner[] a = new Inner[] { new Inner(), new Inner() };
+        }
+
+        Outer struct = decode(new Outer(), 1, 2);
+        assertEquals(1, struct.a[0].item);
+        assertEquals(2, struct.a[1].item);
+    }
+
     private static <T> T decode(T me, int...is) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
         ByteBuffer buffer = ByteBuffer.allocate(is.length);
         Arrays.stream(is).forEach(b -> buffer.put((byte) b));
