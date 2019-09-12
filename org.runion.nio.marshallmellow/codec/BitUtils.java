@@ -4,7 +4,8 @@ import java.util.BitSet;
 
 public class BitUtils {
     public static  boolean getBit(byte source, int index) {
-        return BitSet.valueOf(new long[] { source }).get(index);
+        boolean result = BitSet.valueOf(new long[] { Byte.toUnsignedLong(source) }).get(index);
+        return result;
     }
 
     public static long getBits(byte source, int startIndex, int toIndex) {

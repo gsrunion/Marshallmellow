@@ -8,6 +8,7 @@ import sun.jvm.hotspot.utilities.CStringUtilities;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.BitSet;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -229,6 +230,103 @@ public class EncoderTest {
         Outer struct = decode(new Outer(), 1, 2);
         assertEquals(1, struct.a[0].item);
         assertEquals(2, struct.a[1].item);
+    }
+
+    @Test
+    public void testRealExample() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        class Option {
+            @AsByte
+            public byte len;
+
+            @AsByte
+            @AsArray(lengthProvider = "len")
+            public byte[] data = new byte[128];
+        }
+
+        class ExtendedOptions {
+            @AsByte
+            public byte flags;
+
+
+        }
+
+        class Options {
+            @AsByte
+            public byte flags;
+
+            @AsBit(fieldName = "flags", bitIndex = 0)
+            public boolean option0Present;
+
+            @AsBit(fieldName = "flags", bitIndex = 1)
+            public boolean option1Present;
+
+            @AsBit(fieldName = "flags", bitIndex = 2)
+            public boolean option2Present;
+
+            @AsBit(fieldName = "flags", bitIndex = 3)
+            public boolean option3Present;
+
+            @AsBit(fieldName = "flags", bitIndex = 4)
+            public boolean option4Present;
+
+            @AsBit(fieldName = "flags", bitIndex = 5)
+            public boolean option5Present;
+
+            @AsBit(fieldName = "flags", bitIndex = 6)
+            public boolean option6Present;
+
+            @Precondition(precondition = "option0Present")
+            @AsObject
+            public Option option0 = new Option();
+
+            @Precondition(precondition = "option1Present")
+            @AsObject
+            public Option option1  = new Option();
+
+            @Precondition(precondition = "option2Present")
+            @AsObject
+            public Option option2  = new Option();
+
+            @Precondition(precondition = "option3Present")
+            @AsObject
+            public Option option3  = new Option();
+
+            @Precondition(precondition = "option4Present")
+            @AsObject
+            public Option option4  = new Option();
+
+            @Precondition(precondition = "option5Present")
+            @AsObject
+            public Option option5  = new Option();
+
+            @Precondition(precondition = "option6Present")
+            @AsObject
+            public Option option6  = new Option();
+        }
+
+        Options options = decode(new Options(), 0x83, 5, 1, 2, 3, 4, 5, 1, 1);
+
+
+    }
+
+    @Test
+    public void testBitset() {
+        BitSet bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertTrue(bitSet.get(0));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertTrue(bitSet.get(1));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertTrue(bitSet.get(7));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertFalse(bitSet.get(2));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertFalse(bitSet.get(3));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertFalse(bitSet.get(4));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertFalse(bitSet.get(5));
+        bitSet = BitSet.valueOf(new long[] { 0x83 });
+        assertFalse(bitSet.get(6));
     }
 
     private static <T> T decode(T me, int...is) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
