@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
-public class Encoder {
+public class Decoder {
     interface FieldOperation {
         public Object operate(ByteBuffer b, Object src) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, SecurityException;
     }

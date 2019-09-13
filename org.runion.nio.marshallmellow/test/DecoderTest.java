@@ -1,20 +1,22 @@
 package test;
 
 import annotations.*;
-import codec.Encoder;
+import codec.Decoder;
 import org.junit.Test;
-import sun.jvm.hotspot.utilities.CStringUtilities;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-public class EncoderTest {
+public class DecoderTest {
     @Test
     public void testSignedAndUnsignedByte() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         class Struct {
@@ -232,82 +234,6 @@ public class EncoderTest {
         assertEquals(2, struct.a[1].item);
     }
 
-    @Test
-    public void testRealExample() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        class Option {
-            @AsByte
-            public byte len;
-
-            @AsByte
-            @AsArray(lengthProvider = "len")
-            public byte[] data = new byte[128];
-        }
-
-        class ExtendedOptions {
-            @AsByte
-            public byte flags;
-
-
-        }
-
-        class Options {
-            @AsByte
-            public byte flags;
-
-            @AsBit(fieldName = "flags", bitIndex = 0)
-            public boolean option0Present;
-
-            @AsBit(fieldName = "flags", bitIndex = 1)
-            public boolean option1Present;
-
-            @AsBit(fieldName = "flags", bitIndex = 2)
-            public boolean option2Present;
-
-            @AsBit(fieldName = "flags", bitIndex = 3)
-            public boolean option3Present;
-
-            @AsBit(fieldName = "flags", bitIndex = 4)
-            public boolean option4Present;
-
-            @AsBit(fieldName = "flags", bitIndex = 5)
-            public boolean option5Present;
-
-            @AsBit(fieldName = "flags", bitIndex = 6)
-            public boolean option6Present;
-
-            @Precondition(precondition = "option0Present")
-            @AsObject
-            public Option option0 = new Option();
-
-            @Precondition(precondition = "option1Present")
-            @AsObject
-            public Option option1  = new Option();
-
-            @Precondition(precondition = "option2Present")
-            @AsObject
-            public Option option2  = new Option();
-
-            @Precondition(precondition = "option3Present")
-            @AsObject
-            public Option option3  = new Option();
-
-            @Precondition(precondition = "option4Present")
-            @AsObject
-            public Option option4  = new Option();
-
-            @Precondition(precondition = "option5Present")
-            @AsObject
-            public Option option5  = new Option();
-
-            @Precondition(precondition = "option6Present")
-            @AsObject
-            public Option option6  = new Option();
-        }
-
-        Options options = decode(new Options(), 0x83, 5, 1, 2, 3, 4, 5, 1, 1);
-
-
-    }
 
     @Test
     public void testBitset() {
@@ -333,7 +259,7 @@ public class EncoderTest {
         ByteBuffer buffer = ByteBuffer.allocate(is.length);
         Arrays.stream(is).forEach(b -> buffer.put((byte) b));
         buffer.flip();
-        Encoder.decode(me, buffer);
+        Decoder.decode(me, buffer);
         return me;
     }
 }
