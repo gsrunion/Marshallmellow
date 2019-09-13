@@ -25,7 +25,7 @@ public class ReflectionUtils {
     }
 
     public static Object callGetter(Object me, String methodName) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        return MethodUtils.invokeMethod(me, methodName);
+        return MethodUtils.invokeMethod(me, true, methodName);
     }
 
     public static Object callGettorOrReadField(Object me, String getterOrFieldName) throws InvocationTargetException, IllegalAccessException {

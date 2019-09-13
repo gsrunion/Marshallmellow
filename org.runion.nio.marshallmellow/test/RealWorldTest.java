@@ -17,21 +17,20 @@ public class RealWorldTest {
     public void testRealExample() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         OptionsHeader options = decode(new OptionsHeader(), 0x83, 5, 1, 2, 3, 4, 5, 1, 1);
 
-        assertTrue(options.getOption0().isPresent());
-        options.getOption0().ifPresent(o -> {
+        assertTrue(options.option0().isPresent());
+        options.option0().ifPresent(o -> {
             assertTrue(Arrays.equals(new byte[] { 1, 2, 3, 4, 5}, o));
         });
 
-        assertTrue(options.getOption1().isPresent());
-        options.getOption1().ifPresent(o -> {
+        assertTrue(options.option1().isPresent());
+        options.option1().ifPresent(o -> {
             assertTrue(Arrays.equals(new byte[] { 1 }, o));
         });
 
-        assertFalse(options.getOption2().isPresent());
-        assertFalse(options.getOption3().isPresent());
-        assertFalse(options.getOption4().isPresent());
-        assertFalse(options.getOption5().isPresent());
-        assertFalse(options.getOption6().isPresent());
+        assertFalse(options.option2().isPresent());
+        assertFalse(options.option3().isPresent());
+        assertFalse(options.option4().isPresent());
+        assertFalse(options.option5().isPresent());
     }
 
 

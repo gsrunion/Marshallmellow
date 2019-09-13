@@ -8,83 +8,65 @@ import annotations.Precondition;
 import java.util.Optional;
 
 class OptionsHeader {
-    @AsByte
-    private Byte flags;
+    @AsObject private Options options = new Options();
 
-    @AsBit(fieldName = "flags", bitIndex = 0)
-    private boolean option0Present;
-
-    @AsBit(fieldName = "flags", bitIndex = 1)
-    private boolean option1Present;
-
-    @AsBit(fieldName = "flags", bitIndex = 2)
-    private boolean option2Present;
-
-    @AsBit(fieldName = "flags", bitIndex = 3)
-    private boolean option3Present;
-
-    @AsBit(fieldName = "flags", bitIndex = 4)
-    private boolean option4Present;
-
-    @AsBit(fieldName = "flags", bitIndex = 5)
-    private boolean option5Present;
-
-    @AsBit(fieldName = "flags", bitIndex = 6)
-    private boolean option6Present;
-
-    @Precondition(precondition = "option0Present")
+    @Precondition(precondition = "extendedOptionsIncluded")
     @AsObject
-    private Option option0 = new Option();
+    private ExtendedOptions extendedOptions = new ExtendedOptions();
 
-    @Precondition(precondition = "option1Present")
-    @AsObject
-    private Option option1  = new Option();
-
-    @Precondition(precondition = "option2Present")
-    @AsObject
-    private Option option2  = new Option();
-
-    @Precondition(precondition = "option3Present")
-    @AsObject
-    private Option option3  = new Option();
-
-    @Precondition(precondition = "option4Present")
-    @AsObject
-    private Option option4  = new Option();
-
-    @Precondition(precondition = "option5Present")
-    @AsObject
-    private Option option5  = new Option();
-
-    @Precondition(precondition = "option6Present")
-    @AsObject
-    private Option option6  = new Option();
-
-    public Optional<byte[]> getOption0() {
-        return option0.get();
+    private boolean extendedOptionsIncluded() {
+        return options.option6Present;
     }
 
-    public Optional<byte[]> getOption1() {
-        return option1.get();
+    public Optional<byte[]> option0() {
+        return options.option0.get();
     }
 
-    public Optional<byte[]> getOption2() {
-        return option2.get();
+    public Optional<byte[]> option1() {
+        return options.option1.get();
     }
 
-    public Optional<byte[]> getOption3() {
-        return option3.get();
+    public Optional<byte[]> option2() {
+        return options.option2.get();
     }
 
-    public Optional<byte[]> getOption4() {
-        return option4.get();
+    public Optional<byte[]> option3() {
+        return options.option3.get();
     }
 
-    public Optional<byte[]> getOption5() {
-        return option5.get();
+    public Optional<byte[]> option4() {
+        return options.option4.get();
     }
 
-    public Optional<byte[]> getOption6() {
-        return option5.get();
+    public Optional<byte[]> option5() {
+        return options.option5.get();
+    }
+
+    public Optional<byte[]> extendedOption0() {
+        return extendedOptions.option0.get();
+    }
+
+    public Optional<byte[]> extendedOption1() {
+        return extendedOptions.option1.get();
+    }
+
+    public Optional<byte[]> extendedOption2() {
+        return extendedOptions.option2.get();
+    }
+
+    public Optional<byte[]> extendedOption3() {
+        return extendedOptions.option3.get();
+    }
+
+    public Optional<byte[]> extendedOption4() {
+        return extendedOptions.option4.get();
+    }
+
+    public Optional<byte[]> extendedOption5() {
+        return extendedOptions.option5.get();
+    }
+
+    public Optional<byte[]> extendedOptiony() {
+        return extendedOptions.option5.get();
     }
 }
