@@ -1,11 +1,10 @@
-package codec;
+package util;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 public class ReflectionUtils {
     public static Object readField(Object me, Field field) throws IllegalAccessException {
@@ -35,4 +34,20 @@ public class ReflectionUtils {
             return readField(me, getterOrFieldName);
         }
     }
+
+    public static boolean checkPrecondition(Object me, String getterOrFieldName) throws InvocationTargetException, IllegalAccessException {
+        if(getterOrFieldName.isEmpty()) {
+            return true;
+        }
+
+        return (boolean)callGettorOrReadField(me, getterOrFieldName);
+    }
+
+    public static Object callGettorOrReadFieldOrDefault(Object me, String getterOrFieldName, Object defaultValue) throws InvocationTargetException, IllegalAccessException {
+        if(getterOrFieldName.isEmpty()) {
+            return defaultValue;
+        }
+        return callGettorOrReadField(me, getterOrFieldName);
+    }
+
 }

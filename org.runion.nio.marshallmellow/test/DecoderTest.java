@@ -1,16 +1,13 @@
 package test;
 
-import annotations.*;
-import codec.Decoder;
+import model.Marshalled;
+import model.codecs.*;
 import org.junit.Test;
+import processor.Marshallmellow;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -18,248 +15,177 @@ import static org.junit.Assert.assertFalse;
 
 public class DecoderTest {
     @Test
-    public void testSignedAndUnsignedByte() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testSignedAndUnsignedByte() throws IllegalAccessException, InstantiationException, InvocationTargetException {
+        byte[] data = new byte[]{(byte) 0xFF, (byte) 0xFF};
+
         class Struct {
-            @AsByte public byte signed;
-            @AsUnsignedByte public short unsigned;
+            @Marshalled(codec = ByteCodec.class)
+            public byte signed;
+            @Marshalled(codec = UnsignedByteCodec.class)
+            public short unsigned;
         }
-        Struct struct = decode(new Struct(), (byte)0xFF, (byte)0xFF);
+
+        Struct struct = decode(new Struct(), data);
         assertEquals(-1, struct.signed);
         assertEquals(255, struct.unsigned);
+
+        encode(struct, data);
     }
 
     @Test
-    public void testSignedAndUnsignedShort() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testSignedAndUnsignedShort() throws IllegalAccessException, InstantiationException, InvocationTargetException {
+        byte[] data = new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
         class Struct {
-            @AsShort public short signed;
-            @AsUnsignedShort public int unsigned;
+            @Marshalled(codec = ShortCodec.class)
+            public short signed;
+            @Marshalled(codec = UnsignedShortCodec.class)
+            public int unsigned;
         }
-        Struct struct = decode(new Struct(), (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);
+        Struct struct = decode(new Struct(), data);
         assertEquals(-1, struct.signed);
         assertEquals(65535, struct.unsigned);
+        encode(struct, data);
     }
 
     @Test
-    public void testSignedAndUnsignedInt() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testSignedAndUnsignedInt() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+
         class Struct {
-            @AsInt public int signed;
-            @AsUnsignedInt public long unsigned;
+            @Marshalled(codec = IntegerCodec.class)
+            public int signed;
+            @Marshalled(codec = UnsignedIntCodec.class)
+            public long unsigned;
         }
-        Struct struct = decode(new Struct(), (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF);
+        Struct struct = decode(new Struct(), data);
         assertEquals(-1, struct.signed);
         assertEquals(4294967295L, struct.unsigned);
+        encode(struct, data);
     }
 
     @Test
-    public void testLong() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testLong() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+
         class Struct {
-            @AsLong public long negativeOne;
-            @AsLong public long zero = -1;
+            @Marshalled(codec = LongCodec.class)
+            public long negativeOne;
+            @Marshalled(codec = LongCodec.class)
+            public long zero = -1;
         }
-        Struct struct = decode(new Struct(), (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF,
-                                             (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00, (byte)0x00);
+
+        Struct struct = decode(new Struct(), data);
         assertEquals(-1, struct.negativeOne);
         assertEquals(0, struct.zero);
+        encode(struct, data);
     }
 
     @Test
-    public void testBoolean() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testBoolean() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[] { (byte)0x01, (byte)0x00 };
         class Struct {
-            @AsBoolean public boolean ttrue = false;
-            @AsBoolean public boolean tfalse = true;
+            @Marshalled(codec = BooleanCodec.class) public boolean ttrue = false;
+            @Marshalled(codec = BooleanCodec.class) public boolean tfalse = true;
         }
-        Struct struct = decode(new Struct(), (byte)0x01, (byte)0x00);
+        Struct struct = decode(new Struct(), data);
         assertEquals(true, struct.ttrue);
         assertEquals(false, struct.tfalse);
+        encode(struct, data);
     }
 
-    enum AnEnum {
-        X,
-        Y,
-        Z;
-    }
 
     @Test
-    public void testAsEnum() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testConditionalInclusion() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[] { (byte)0x01, (byte)0x00, (byte)0x01, (byte)0x02 };
         class Struct {
-            @AsEnum AnEnum x = AnEnum.Z;
-            @AsEnum AnEnum y = AnEnum.Z;
-            @AsEnum AnEnum z = AnEnum.X;
-        }
-        Struct struct = decode(new Struct(), (byte)0x00, (byte)0x01, (byte)0x02);
-        assertEquals(AnEnum.X, struct.x);
-        assertEquals(AnEnum.Y, struct.y);
-        assertEquals(AnEnum.Z, struct.z);
-    }
-
-    @Test
-    public void testConditionalInclusion() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        class Struct {
-            @AsBoolean
-            public boolean truePredicate = false;
-            @AsBoolean
-            public boolean falsePredicate = true;
-
-            @Precondition(precondition = "truePredicate")
-            @AsByte
-            public byte first;
-
-            @Precondition(precondition = "falsePredicate")
-            @AsByte
-            public byte second;
-
-            @Precondition(precondition = "shouldInclude")
-            @AsByte
-            public byte third;
-
-            Struct() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-            }
+            @Marshalled(codec = BooleanCodec.class) public boolean truePredicate = false;
+            @Marshalled(codec = BooleanCodec.class) public boolean falsePredicate = true;
+            @Marshalled(codec = ByteCodec.class, precondition = "truePredicate") public byte first;
+            @Marshalled(codec = ByteCodec.class, precondition = "falsePredicate") public byte second;
+            @Marshalled(codec = ByteCodec.class, precondition = "shouldInclude")  public byte third;
 
             public boolean shouldInclude() {
                 return truePredicate;
             }
         }
-        Struct struct = decode(new Struct(), (byte)0x01, (byte)0x00, (byte)0x01, (byte)0x02);
+        Struct struct = decode(new Struct(), data);
         assertTrue(struct.truePredicate);
         assertFalse(struct.falsePredicate);
         assertEquals(1, struct.first);
         assertEquals(0, struct.second);
         assertEquals(2, struct.third);
+        encode(struct, data);
     }
 
     @Test
-    public void testAsBit() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        class Struct {
-            @AsByte public byte bits;
-            @AsBit(fieldName = "bits", bitIndex = 0) public boolean bit0;
-            @AsBit(fieldName = "bits", bitIndex = 1) public boolean bit1;
-            @AsBit(fieldName = "bits", bitIndex = 2) public boolean bit2;
-            @AsBit(fieldName = "bits", bitIndex = 3) public boolean bit3;
-            @AsBit(fieldName = "bits", bitIndex = 4) public boolean bit4;
-            @AsBit(fieldName = "bits", bitIndex = 5) public boolean bit5;
-            @AsBit(fieldName = "bits", bitIndex = 6) public boolean bit6;
-            @AsBit(fieldName = "bits", bitIndex = 7) public boolean bit7;
-        }
-        Struct struct = decode(new Struct(), (byte)0xAA);
-        assertFalse(struct.bit0);
-        assertFalse(struct.bit2);
-        assertFalse(struct.bit4);
-        assertFalse(struct.bit6);
-        assertTrue(struct.bit1);
-        assertTrue(struct.bit3);
-        assertTrue(struct.bit5);
-        assertTrue(struct.bit7);
-    }
+    public void testObject() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[] { 0, 1 };
 
-    @Test
-    public void testString() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        class Struct {
-            @AsByte public byte len;
-            @AsString(fixedLength = 4) public String fixedLengthString;
-            @AsString public String nullTerminated;
-            @AsString(lengthProvider = "len") public String fieldPredicatedString;
-            @AsString(lengthProvider = "length") public String methodPredicatedString;
-
-            public int length() {
-                return len;
-            }
-        }
-        Struct struct = decode(new Struct(), 2, 'A', 'B', 'C', 'D', 'A', 'B', 0, 'D', 'E', 'A', 'D');
-        assertEquals(2, struct.len);
-        assertEquals("ABCD", struct.fixedLengthString);
-        assertEquals("AB", struct.nullTerminated);
-        assertEquals("DE", struct.fieldPredicatedString);
-        assertEquals("AD", struct.methodPredicatedString);
-    }
-
-    @Test
-    public void testObject() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         class Inner {
-            @AsByte public byte item;
+            @Marshalled(codec = ByteCodec.class) public byte item;
         }
 
         class Outer {
-            @AsObject public Inner a = new Inner();
-            @AsObject public Inner b = new Inner();
+            @Marshalled(codec = ObjectCodec.class) public Inner a = new Inner();
+            @Marshalled(codec = ObjectCodec.class) public Inner b = new Inner();
         }
 
-        Outer struct = decode(new Outer(), 0, 1);
+        Outer struct = decode(new Outer(), data);
         assertEquals(0, struct.a.item);
         assertEquals(1, struct.b.item);
+        encode(struct, data);
     }
 
     @Test
-    public void testArray() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testArray() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[] { 0, 1, 2, 2, 3, 4, 5, 6 };
         class Struct {
-            @AsByte
-            @AsArray(fixedLength = 3)
-            public byte[] fixedLength = new byte[100];
-
-            @AsByte public byte len;
-
-            @AsByte
-            @AsArray(lengthProvider = "len")
-            public byte[] fieldPredicated = new byte[100];
-
-            @AsByte
-            @AsArray(lengthProvider = "length")
-            public byte[] methodPredicated = new byte[100];
+            @Marshalled(codec = ByteCodec.class, isArray = true) public byte[] fixedLength = new byte[3];
+            @Marshalled(codec = ByteCodec.class) public byte len;
+            @Marshalled(codec = ByteCodec.class, isArray = true, length = "len") public byte[] fieldPredicated = new byte[100];
+            @Marshalled(codec = ByteCodec.class, isArray = true, length = "length") public byte[] methodPredicated = new byte[100];
 
             public int length() {
                 return len;
             }
         }
 
-        Struct struct = decode(new Struct(), 0, 1, 2, 2, 3, 4, 5, 6);
+        Struct struct = decode(new Struct(), data);
         assertTrue(Arrays.equals(new byte[]{ 0, 1, 2}, struct.fixedLength));
         assertEquals(2, struct.len);
         assertTrue(Arrays.equals(new byte[]{ 3, 4}, struct.fieldPredicated));
         assertTrue(Arrays.equals(new byte[]{ 5, 6}, struct.methodPredicated));
+        encode(struct, data);
     }
 
     @Test
-    public void testArrayObject() throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public void testArrayObject() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = new byte[] { 1, 2 };
+
         class Inner {
-            @AsByte public byte item;
+            @Marshalled(codec = ByteCodec.class) public byte item;
         }
 
         class Outer {
-            @AsObject
-            @AsArray(fixedLength = 2)
+            @Marshalled(codec = ObjectCodec.class, isArray = true)
             public Inner[] a = new Inner[] { new Inner(), new Inner() };
         }
 
-        Outer struct = decode(new Outer(), 1, 2);
+        Outer struct = decode(new Outer(), data);
         assertEquals(1, struct.a[0].item);
         assertEquals(2, struct.a[1].item);
+        encode(struct, data);
     }
 
 
-    @Test
-    public void testBitset() {
-        BitSet bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertTrue(bitSet.get(0));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertTrue(bitSet.get(1));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertTrue(bitSet.get(7));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertFalse(bitSet.get(2));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertFalse(bitSet.get(3));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertFalse(bitSet.get(4));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertFalse(bitSet.get(5));
-        bitSet = BitSet.valueOf(new long[] { 0x83 });
-        assertFalse(bitSet.get(6));
-    }
-
-    private static <T> T decode(T me, int...is) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
-        ByteBuffer buffer = ByteBuffer.allocate(is.length);
-        Arrays.stream(is).forEach(b -> buffer.put((byte) b));
-        buffer.flip();
-        Decoder.decode(me, buffer);
+    private static <T> T decode(T me, byte[] is) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        assertEquals(0, Marshallmellow.decode(me, ByteBuffer.wrap(is)).remaining());
         return me;
+    }
+
+    private static <T> void encode(T me, byte[] is) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        byte[] data = Marshallmellow.encode(me, ByteBuffer.allocate(is.length)).array();
+        assertTrue(Arrays.equals(is, data));
     }
 }
