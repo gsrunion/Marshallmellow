@@ -1,5 +1,6 @@
 package processor;
 
+import model.Interpreted;
 import model.Marshalled;
 import model.codecs.ArrayCodec;
 
@@ -36,5 +37,17 @@ public class Marshallmellow {
             }
         }
         return buffer;
+    }
+
+    public static void interpret(Object targetObject) throws IllegalAccessException, InstantiationException {
+        for (Field targetField : targetObject.getClass().getDeclaredFields()) {
+            Interpreted interpreted = targetField.getAnnotation(Interpreted.class);
+            if(interpreted != null) {
+                Object sourceValue = readField(targetObject, interpreted.feildName());
+                Object targetValue = readField(targetObject, targetField);
+                Object updated = interpreted.interpretor().newInstance().interpret(sourceValue, targetValue, interpreted);
+                writeField(targetObject, targetField, updated);
+            }
+        }
     }
 }
