@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+
+    <title>Java Binary Serialization</title>
+
+    <meta name="description" content="Java Binary Serialization" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <link rel="stylesheet" href="assets/3rdparty/reveal.js/css/reveal.css" />
+    <link rel="stylesheet" href="assets/3rdparty/reveal.js/css/theme/simple.css" id="theme" />
+
+    <link rel="stylesheet" href="assets/markdeck/styles/zenburn.css" />
+
+        <link rel="stylesheet" href="assets/markdeck/css/markdeck.revealjs.css" />
+    <link rel="stylesheet" href="assets/css/slides.css" />
+
+    <script>
+        window.pdf_render = window.location.search.match(/render=pdf/gi) != null;
+        if (window.pdf_render) {
+            document.write('<link rel="stylesheet" href="assets/css/render-pdf.css" type="text/css">');
+        }
+    </script>
+
+    <link href="assets/css/rerendering.css" rel="stylesheet"></link>
+
+
+</head>
+<body>
+
+
+    <div class="rerendering-message"><h1>R E R E N D E R I N G</h1></div>
+    <div class="markdeck-logo"><a href="https://github.com/arnehilmann/markdeck">powered by markdeck</a></div>
+
+    <div class="reveal">
+        <div class="slides">
+
+<section id="java-binary-serialization" class="level1">
+<h1>Java Binary Serialization</h1>
+<p><small>
+Problem: Java has weak built in support for exchange of structured binary data with external systems.
+</small></p>
+</section>
+<section id="binary-structured-data" class="level1">
+<h1>Binary Structured Data</h1>
+<pre class="c"><code>typedef struct MessageHeader {
+  uint8_t serviceType; // unsigned 8 bit integer
+  uint8_t messageType // unsigned 8 bit integer
+  uint16_t sequenceNumber;// unsigned 16 bit integer
+} MessageHeader;
+
+// in memory 0x01, 0x02, 0xFF, 0xFF
+MessageHeader header = { 1, 2, 0xFFFF }</code></pre>
+<pre class="java"><code>// not equivalent
+public class MessageHeader {
+  private byte serviceType; // signed 8 bit integer
+  private byte messageType; // signed 8 bit integer
+  private short sequenceNumber; // signed 16 bit integer
+  ....
+}
+
+// in memory ?
+MessageHeader header = new MessageHeader(1, 2, (short)0xFFFF);</code></pre>
+</section>
+<section id="java-nuances" class="level1">
+<h1>Java Nuances</h1>
+<ul>
+<li>No support for unsigned types</li>
+<li>Memory model is opaque to developers.</li>
+<li>Primitive type sizes are well defined but not explicit in type names.</li>
+<li>VM always uses same endianess. (I think).</li>
+</ul>
+</section>
+<section id="enter-bytebuffer" class="level1">
+<h1>Enter ByteBuffer …</h1>
+<pre class="java"><code>ByteBuffer buffer = ByteBuffer.wrap(new byte[] { 0x00, 0x01, 0xFF, 0xFF}).order(ByteOrder.BIG_ENDIAN);
+MessageHeader header = new MessageHeader(buffer.get(), buffer.get(), buffer.getShort());</code></pre>
+<ul>
+<li>Still no unsigned support</li>
+<li>No code reuse for unmarshalling nested binary structures.</li>
+</ul>
+</section>
+<section id="enter-bytebuffer-1" class="level1">
+<h1>… Enter ByteBuffer</h1>
+<pre class="java"><code>public class MessageHeader {
+  private int serviceType; // signed 8 bit integer
+  private int messageType; // signed 8 bit integer
+  private int sequenceNumber; // signed 16 bit integer
+  ....
+}
+
+ByteBuffer buffer = ByteBuffer.wrap(new byte[] { 0x00, 0x01, 0xFF, 0xFF})
+                      .order(ByteOrder.BIG_ENDIAN);
+
+MessageHeader header = new MessageHeader(
+  Byte.ToUnsignedInt(buffer.get()), 
+  Byte.ToUnsignedInt(buffer.get()), 
+  Short.ToUnsignedInt(buffer.getShort())
+);</code></pre>
+<ul>
+<li><del>Still no unsigned support</del></li>
+<li>No code reuse for unmarshalling nested binary structures.</li>
+</ul>
+</section>
+<section id="enter-serializablestruct" class="level1">
+<h1>Enter SerializableStruct …</h1>
+<pre class="java"><code>public class MessageHeader implements SerializableStruct {
+  @SerializableField byte serviceType;
+  @SerializableField byte messageType;
+  @SerializableField short sequenceNumber;
+  @Override public int binarySize() { return 4; }
+  @Override public ByteOrder defaultByteOrder() { return ByteOrder.BIG_ENDIAN; }
+}
+
+byte[] data = new byte[4]; // ...
+MessageHeader header = new MessageHeader();
+SerializableStructCodec.decode(header, ByteBuffer.wrap(data));</code></pre>
+</section>
+<section id="enter-serializablestruct-1" class="level1">
+<h1>… Enter SerializableStruct</h1>
+<ul>
+<li>Handles marshalling primitive and boxed primitive types.</li>
+<li>Handles marshalling of Strings</li>
+<li>Handles marshalling nested SerializableStructs</li>
+<li>Handles marshalling arrays of the above.</li>
+<li>Gives developer control of binary memory footprint.</li>
+<li>Gives developers control of endianess.</li>
+</ul>
+</section>
+<section id="wishlist-add-support-for" class="level1">
+<h1>Wishlist: Add support for</h1>
+<ul>
+<li>unsigned values</li>
+<li>enum types &lt;-&gt; unsigned bytes</li>
+<li>booleans &lt;-&gt; bits</li>
+<li>sub byte integer values</li>
+<li>non structured or conditionally present data.</li>
+<li>variable length arrays of marshallable objects.</li>
+</ul>
+</section>
+<section id="enter-marshallmellow" class="level1">
+<h1>Enter <a href="https://github.com/gsrunion/Marshallmellow">Marshallmellow</a></h1>
+<p><img width="200px" src="assets/marshallmellow.jpg"></img></p>
+</section>
+<section id="enter-marshallmellow-1" class="level1">
+<h1>Enter <a href="https://github.com/gsrunion/Marshallmellow">Marshallmellow</a></h1>
+<ul>
+<li><del>unsigned values</del></li>
+<li>enum types &lt;-&gt; unsigned bytes</li>
+<li>booleans &lt;-&gt; bits</li>
+<li>sub byte integer values</li>
+<li><del>non structured or conditionally present data.</del></li>
+<li><del>variable length arrays and Strings of marshallable objects.</del></li>
+</ul>
+</section>
+<section id="unsigned-values" class="level1">
+<h1>Unsigned Values</h1>
+<pre class="java"><code>class Struct {
+    @Marshalled(codec = ByteCodec.class) public byte signed;
+    @Marshalled(codec = UnsignedByteCodec.class) public short unsigned;
+}
+Struct myStruct = new Struct();
+Marshallmellow.decode(myStruct, ByteBuffer.wrap(new byte[] { .... }));</code></pre>
+</section>
+<section id="non-structured-or-conditionally-present-data" class="level1">
+<h1>Non Structured Or Conditionally Present Data</h1>
+<pre class="java"><code>class Struct {
+    @Marshalled(codec = BooleanCodec.class) public boolean truePredicate = false;
+    @Marshalled(codec = BooleanCodec.class) public boolean falsePredicate = true;
+    @Marshalled(codec = ByteCodec.class, precondition = &quot;truePredicate&quot;) public byte first;
+    @Marshalled(codec = ByteCodec.class, precondition = &quot;falsePredicate&quot;) public byte second;
+    @Marshalled(codec = ByteCodec.class, precondition = &quot;shouldInclude&quot;)  public byte third;
+
+    public boolean shouldInclude() {
+        return truePredicate;
+    }
+}</code></pre>
+</section>
+<section id="variable-length-arrays-and-strings" class="level1">
+<h1>Variable Length Arrays And Strings</h1>
+<pre class="java"><code>class Struct {
+  @Marshalled(codec = ByteCodec.class, isArray = true) public byte[] fixedLength = new byte[3];
+  @Marshalled(codec = ByteCodec.class) public byte len;
+  @Marshalled(codec = ByteCodec.class, isArray = true, length = &quot;len&quot;) public byte[] fieldPredicated = new byte[100];
+  @Marshalled(codec = ByteCodec.class, isArray = true, length = &quot;length&quot;) public byte[] methodPredicated = new byte[100];
+
+  public int length() {
+      return len;
+  }
+}</code></pre>
+</section>
+<section id="nested-objects" class="level1">
+<h1>Nested Objects</h1>
+<pre class="java"><code>class Inner {
+  @Marshalled(codec = ByteCodec.class) public byte item;
+}
+
+class Outer {
+  @Marshalled(codec = ObjectCodec.class, isArray = true)
+  public Inner[] a = new Inner[] { new Inner(), new Inner() };
+}</code></pre>
+</section>
+<section id="wishlist-add-support-for-1" class="level1">
+<h1>Wishlist: Add support for</h1>
+<ul>
+<li><del>unsigned values</del></li>
+<li><del>non structured or conditionally present data.</del></li>
+<li><del>variable length arrays of marshallable objects.</del></li>
+</ul>
+</section>
+<section id="future-work-provide-more-annotations" class="level1">
+<h1>Future Work: Provide more annotations</h1>
+<ul>
+<li>enum types &lt;-&gt; unsigned bytes</li>
+<li>booleans &lt;-&gt; bits</li>
+<li>sub byte integer values</li>
+</ul>
+<pre class="java"><code>class Struct {
+  @Marshalled(codec = ByteCodec.class) public byte item;
+  @Marshalled(codec = ByteCodec.class) public byte otherItem;
+  @Interpreted(interpretor = EnumInterpretor.class, field = &quot;otherItem&quot;, enumType = MessageType.class) messageType;
+  @Interpreted(interpretor = BitInterpreter.class, field = &quot;item&quot;, bit = 0) public boolean bitZero;
+  @Interpreted(interpretor = BitInterpreter.class, field = &quot;item&quot;, bit = 1, length = 2) public byte bits1and2;
+}</code></pre>
+</section>
+<section id="future-work-explore-non-reflection-approach" class="level1">
+<h1>Future Work: Explore Non Reflection Approach</h1>
+<pre class="java"><code>public interface Encodable {
+    public void encode(ByteBuffer buffer);
+    public void decode(ByteBuffer buffer);
+}
+
+public abstract class AbstractEncodable&lt;T&gt; implements Encodable {
+    private T value; // getter, setter
+}
+
+public abstract class CompoundEncodable&lt;T&gt; extends AbstractEncodable&lt;T&gt; {
+  public abstract Encodable[] getEncodables();
+  ...
+}
+
+public abstract class ConditionalEncodable&lt;T&gt; extends AbstractEncodable&lt;T&gt; {
+  private final Supplier&lt;Boolean&gt; booleanSupplier;
+  ...
+}
+
+public abstract class SizedEncodable&lt;T&gt; extends AbstractEncodable&lt;T&gt; {
+  private final Supplier&lt;Integer&gt; lenghtSupplier;
+  ...
+}</code></pre>
+</section>
+
+        </div>
+    </div>
+
+    <script src="assets/3rdparty/jquery.js"></script>
+
+    <script src="assets/3rdparty/reveal.js/lib/js/head.min.js"></script>
+    <script src="assets/3rdparty/reveal.js/js/reveal.js"></script>
+
+    <script>
+        // Full list of configuration options available here:
+        // https://github.com/hakimel/reveal.js#configuration
+        Reveal.initialize({
+            controls: 'true',
+            controlsTutorial: '',
+            controlsLayout: 'bottom-right',
+            controlsBackArrows: 'faded',
+            progress: 'true',
+            defaultTiming: '120',
+            slideNumber: 'true',
+            history: 'true',
+            keyboard: 'true',
+            overview: 'true',
+            center: 'true',
+            touch: 'true',
+            loop: '',
+            rtl: '',
+            shuffle: '',
+            fragments: 'true',
+            embedded: '',
+            help: 'true',
+            showNotes: '',
+            autoPlayMedia: 'null',
+
+            autoSlide: (window.pdf_render) ? 0 : 0,
+
+            autoSlideStoppable: 'true',
+            autoSlideMethod: 'Reveal.navigateNext',
+            mouseWheel: '',
+            hideAddressBar: 'true',
+            previewLinks: '',
+            transition: 'convex',
+            transitionSpeed: 'default',
+            backgroundTransition: 'fade',
+
+            theme: 'simple',
+
+            // Optional libraries used to extend on reveal.js
+            dependencies: [
+                { src: 'assets/3rdparty/reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+                { src: 'assets/markdeck/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                { src: 'assets/3rdparty/reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+                { src: 'assets/3rdparty/reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+            ]
+        });
+    </script>
+
+    
+    <script src="assets/markdeck/revealjs-helper.js"></script>
+    <script>
+        flushleft(".slides .flushleft");
+    </script>
+
+
+</body>
+</html>
