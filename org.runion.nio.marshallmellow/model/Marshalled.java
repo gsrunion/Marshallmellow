@@ -12,26 +12,20 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Marshalled {
     /**
-     * Class definition for an implementation of Codec that will be used for marshalling of the field
+     * Class definition for an implementation of Codec that will be used for marshalling of the field.
+     * Examples: ArrayCodec.class, ByteCodec.class...
      */
     Class<? extends Codec> codec();
 
     /**
-     * Marks the field as an array such that elements of the array are marshalled accordingly.
+     * Expression the produces a boolean value. Names of fields that exist before this in the parent object are allowed.
+     * Examples: "true", "!false", "2 % 2 = 0", and "(flags & 0x1) != 0"
      */
-    boolean isArray() default false;
+    String precondition() default "true";
 
     /**
-     * Name of a boolean variable or boolean returning method on the class that contains the annotation field that is
-     * used for selective inclusion of this field in marshalling.
+     * Expression the produces a integer value. Names of fields that exist before this in the parent object are allowed.
+     * Examples: "1", "2", "numBits / 8", and "someArray.length"
      */
-    String precondition() default "";
-
-    /**
-     * Name of an integer (byte, short, int, long) variable or integer returning method on the class that contains the
-     * annotated field, used to indicate how many items to read or write from the ByteBuffer. This is applicable when
-     * marshalling Strings, where number of items indicates number of bytes, or arrays (isArray = true) where the number
-     * of items is the number of elements in the array.
-     */
-    String length() default "";
+    String length() default "1";
 }

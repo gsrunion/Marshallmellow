@@ -8,6 +8,7 @@ import processor.Marshallmellow;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.BitSet;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -97,24 +98,16 @@ public class DecoderTest {
 
     @Test
     public void testConditionalInclusion() throws IllegalAccessException, InvocationTargetException, InstantiationException {
-        byte[] data = new byte[] { (byte)0x01, (byte)0x00, (byte)0x01, (byte)0x02 };
+        byte[] data = new byte[] { (byte)0x01, (byte)0x01 };
         class Struct {
-            @Marshalled(codec = BooleanCodec.class) public boolean truePredicate = false;
-            @Marshalled(codec = BooleanCodec.class) public boolean falsePredicate = true;
-            @Marshalled(codec = ByteCodec.class, precondition = "truePredicate") public byte first;
-            @Marshalled(codec = ByteCodec.class, precondition = "falsePredicate") public byte second;
-            @Marshalled(codec = ByteCodec.class, precondition = "shouldInclude")  public byte third;
-
-            public boolean shouldInclude() {
-                return truePredicate;
-            }
+            @Marshalled(codec = ByteCodec.class) public byte flags = 0;
+            @Marshalled(codec = ByteCodec.class, precondition = "(flags & 0x01) != 0") public byte first = -1;
+            @Marshalled(codec = ByteCodec.class, precondition = "(flags & 0x01) == 0") public byte second = -1;
         }
         Struct struct = decode(new Struct(), data);
-        assertTrue(struct.truePredicate);
-        assertFalse(struct.falsePredicate);
+        assertEquals(1, struct.flags);
         assertEquals(1, struct.first);
-        assertEquals(0, struct.second);
-        assertEquals(2, struct.third);
+        assertEquals(-1, struct.second);
         encode(struct, data);
     }
 
@@ -139,23 +132,17 @@ public class DecoderTest {
 
     @Test
     public void testArray() throws IllegalAccessException, InvocationTargetException, InstantiationException {
-        byte[] data = new byte[] { 0, 1, 2, 2, 3, 4, 5, 6 };
+        byte[] data = new byte[] { 0, 1, 2, 2, 3, 4};
         class Struct {
-            @Marshalled(codec = ByteCodec.class, isArray = true) public byte[] fixedLength = new byte[3];
-            @Marshalled(codec = ByteCodec.class) public byte len;
-            @Marshalled(codec = ByteCodec.class, isArray = true, length = "len") public byte[] fieldPredicated = new byte[100];
-            @Marshalled(codec = ByteCodec.class, isArray = true, length = "length") public byte[] methodPredicated = new byte[100];
-
-            public int length() {
-                return len;
-            }
+            @Marshalled(codec = ByteCodec.class, length = "3") public byte[] fixedLength = new byte[3];
+            @Marshalled(codec = ByteCodec.class, length = "1") public byte len;
+            @Marshalled(codec = ByteCodec.class, length = "len") public byte[] fieldPredicated = new byte[100];
         }
 
         Struct struct = decode(new Struct(), data);
         assertTrue(Arrays.equals(new byte[]{ 0, 1, 2}, struct.fixedLength));
         assertEquals(2, struct.len);
         assertTrue(Arrays.equals(new byte[]{ 3, 4}, struct.fieldPredicated));
-        assertTrue(Arrays.equals(new byte[]{ 5, 6}, struct.methodPredicated));
         encode(struct, data);
     }
 
@@ -168,7 +155,7 @@ public class DecoderTest {
         }
 
         class Outer {
-            @Marshalled(codec = ObjectCodec.class, isArray = true)
+            @Marshalled(codec = ObjectCodec.class, length = "2")
             public Inner[] a = new Inner[] { new Inner(), new Inner() };
         }
 
@@ -178,6 +165,24 @@ public class DecoderTest {
         encode(struct, data);
     }
 
+    enum AnEnum {
+        A,
+        B,
+        C,
+    }
+    @Test
+    public void testEnum() throws IllegalAccessException, InstantiationException, InvocationTargetException {
+        byte[] data = new byte[] { 2 };
+
+        class Struct {
+            @Marshalled(codec = EnumCodec.class)
+            public AnEnum anEnum = AnEnum.A;
+        }
+
+        Struct struct = decode(new Struct(), data);
+        assertEquals(AnEnum.C, struct.anEnum);
+        encode(struct, data);
+    }
 
     private static <T> T decode(T me, byte[] is) throws IllegalAccessException, InvocationTargetException, InstantiationException {
         assertEquals(0, Marshallmellow.decode(me, ByteBuffer.wrap(is)).remaining());
