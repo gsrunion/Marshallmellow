@@ -1,0 +1,110 @@
+package model;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public enum Bit {
+    BIT_0(0,0x0000000000000001L),
+    BIT_1(1,0x0000000000000002L),
+    BIT_2(2,0x0000000000000004L),
+    BIT_3(3,0x0000000000000008L),
+    BIT_4(4,0x0000000000000010L),
+    BIT_5(5,0x0000000000000020L),
+    BIT_6(6,0x0000000000000040L),
+    BIT_7(7,0x0000000000000080L),
+    BIT_8(8,0x0000000000000100L),
+    BIT_9(9,0x0000000000000200L),
+    BIT_10(10,0x0000000000000400L),
+    BIT_11(11,0x0000000000000800L),
+    BIT_12(12,0x0000000000001000L),
+    BIT_13(13,0x0000000000002000L),
+    BIT_14(14,0x0000000000004000L),
+    BIT_15(15,0x0000000000008000L),
+    BIT_16(16,0x0000000000010000L),
+    BIT_17(17,0x0000000000020000L),
+    BIT_18(18,0x0000000000040000L),
+    BIT_19(19,0x0000000000080000L),
+    BIT_20(20,0x0000000000100000L),
+    BIT_21(21,0x0000000000200000L),
+    BIT_22(22,0x0000000000400000L),
+    BIT_23(23,0x0000000000800000L),
+    BIT_24(24,0x0000000001000000L),
+    BIT_25(25,0x0000000002000000L),
+    BIT_26(26,0x0000000004000000L),
+    BIT_27(27,0x0000000008000000L),
+    BIT_28(28,0x0000000010000000L),
+    BIT_29(29,0x0000000020000000L),
+    BIT_30(30,0x0000000040000000L),
+    BIT_31(31,0x0000000080000000L),
+    BIT_32(32,0x0000000100000000L),
+    BIT_33(33,0x0000000200000000L),
+    BIT_34(34,0x0000000400000000L),
+    BIT_35(35,0x0000000800000000L),
+    BIT_36(36,0x0000001000000000L),
+    BIT_37(37,0x0000002000000000L),
+    BIT_38(38,0x0000004000000000L),
+    BIT_39(39,0x0000008000000000L),
+    BIT_40(40,0x0000010000000000L),
+    BIT_41(41,0x0000020000000000L),
+    BIT_42(42,0x0000040000000000L),
+    BIT_43(43,0x0000080000000000L),
+    BIT_44(44,0x0000100000000000L),
+    BIT_45(45,0x0000200000000000L),
+    BIT_46(46,0x0000400000000000L),
+    BIT_47(47,0x0000800000000000L),
+    BIT_48(48,0x0001000000000000L),
+    BIT_49(49,0x0002000000000000L),
+    BIT_50(50,0x0004000000000000L),
+    BIT_51(51,0x0008000000000000L),
+    BIT_52(52,0x0010000000000000L),
+    BIT_53(53,0x0020000000000000L),
+    BIT_54(54,0x0040000000000000L),
+    BIT_55(55,0x0080000000000000L),
+    BIT_56(56,0x0100000000000000L),
+    BIT_57(57,0x0200000000000000L),
+    BIT_58(58,0x0400000000000000L),
+    BIT_59(59,0x0800000000000000L),
+    BIT_60(60,0x1000000000000000L),
+    BIT_61(61,0x2000000000000000L),
+    BIT_62(62,0x4000000000000000L),
+    BIT_63(63,0x8000000000000000L);
+
+    private final long mask;
+    private final int index;
+
+    Bit(int index, long mask) {
+        this.index = index;
+        this.mask = mask;
+    }
+
+    public static Bit forIndex(int index) {
+        return Bit.values()[index];
+    }
+
+    public boolean test(long value) {
+        return (mask & value) != 0;
+    }
+
+    public long set(long value) {
+        return value | mask;
+    }
+
+    public long clear(long value) {
+        return value ^ mask;
+    }
+
+    public List<Integer> split(long value) {
+        return Arrays.stream(Bit.values()).filter(b -> b.test(value)).map(b -> b.index).collect(Collectors.toList());
+    }
+
+    public long mask() {
+        return mask;
+    }
+
+    public long index() {
+        return index;
+    }
+}
+
+
