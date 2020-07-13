@@ -19,7 +19,7 @@ public @interface Marshalled {
 
     /**
      * Expression the produces a boolean value. Names of fields that exist before this in the parent object are allowed.
-     * Examples: "true", "!false", "2 % 2 = 0", and "(flags & 0x1) != 0"
+     * Examples: "true", "!false", "2 % 2 == 0", and "(flags & 0x1) != 0"
      */
     String precondition() default "true";
 
